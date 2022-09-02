@@ -118,6 +118,46 @@ function CanvasRenderer({
     }
 
   }, [])
+
+  const { tool, colorBlock, lineSplitBlock, pointSplitBlock, color } =
+    useEditor();
+  const handleBlockClick = (blockId: string) => {
+    if (tool) {
+      const newPoint: Point = [
+        point[0],
+        height - point[1]
+      ]
+      switch (tool) {
+        case Tool.Color: {
+          return colorBlock({ blockId: blockId, color });
+        }
+        case Tool.HorizontalSplit:
+        case Tool.VerticalSplit: {
+          if (ref.current) {
+            const [x, y] = newPoint
+            return lineSplitBlock({
+              blockId: blockId,
+              orientation:
+                tool === Tool.HorizontalSplit ? "horizontal" : "vertical",
+              point: [x, y],
+            });
+          }
+          break
+        }
+        case Tool.PointCut: {
+          if (ref.current) {
+            const [x, y] = newPoint
+            return pointSplitBlock({
+              blockId: blockId,
+              point: [x, y],
+            });
+          }
+          break
+        }
+      }
+    }
+  };
+
   return (
     <div
       ref={ref}
@@ -132,7 +172,7 @@ function CanvasRenderer({
       }}
     >
       {blocks.map((block) => (
-        <BlockRenderer key={block.id} block={block} />
+        <BlockRenderer key={block.id} block={block} onClick={handleBlockClick} />
       ))}
       <div style={{
         position: 'absolute',
@@ -145,40 +185,11 @@ function CanvasRenderer({
 }
 
 
-function BlockRenderer({ block }: { block: Block }) {
+function BlockRenderer({ block, onClick }: { block: Block, onClick: (blockId: string) => void }) {
   const ref = useRef<HTMLDivElement>(null);
-  const { tool, colorBlock, lineSplitBlock, pointSplitBlock, color, size: { height } } =
-    useEditor();
   const handleClick = (e: MouseEvent<HTMLElement>) => {
     e.stopPropagation();
-    if (tool) {
-      switch (tool) {
-        case Tool.Color: {
-          return colorBlock({ blockId: block.id, color });
-        }
-        case Tool.HorizontalSplit:
-        case Tool.VerticalSplit: {
-          if (ref.current) {
-            const rect = ref.current.getBoundingClientRect();
-            const newPoint: Point = [
-              e.clientX - rect.left,
-              height - (e.clientY - rect.top)
-            ]
-            const [x, y] = newPoint
-            // const x = block.shape[0][0] + (e.clientX - rect.left);
-            // const y = block.shape[1][1] + (e.clientY - rect.top);
-            // debugger
-            console.log('x,y', x, y, e.clientY, rect)
-            return lineSplitBlock({
-              blockId: block.id,
-              orientation:
-                tool === Tool.HorizontalSplit ? "horizontal" : "vertical",
-              point: [x, y],
-            });
-          }
-        }
-      }
-    }
+    onClick(block.id)
   };
   return <SimpleBlockRenderer ref={ref} block={block} onClick={handleClick} />;
 }
