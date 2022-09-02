@@ -3,6 +3,13 @@
 }
 
 .tool-btn {
+  -webkit-appearance: none;
   appearance: none;
-  border: 1px solid gray;
+  border: 1px solid black;
+  background: white;
+}
+
+.tool-btn.selected {
+  background: black;
+  color: white;
 }

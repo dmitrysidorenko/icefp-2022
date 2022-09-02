@@ -14,7 +14,7 @@ export default function App() {
         [0, 0],
         [200, 200]
       ],
-      color: [0, 0, 0, 1]
+      color: [0, 255, 0, 1]
     },
     {
       id: "0.1",
@@ -35,13 +35,13 @@ export default function App() {
         pointSplitBlock={({ blockId, point }) => setBlocks(blocks => PointCut({
           blockId, blocks, point
         }))}
+        size={{ height: 400, width: 400 }}
       >
         <Editor
           size={{ height: 400, width: 400 }}
           blocks={blocks}
         />
       </EditorProvider>
-
     </div >
   );
 }
