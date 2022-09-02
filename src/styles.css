@@ -1,0 +1,8 @@
+.App {
+  font-family: sans-serif;
+}
+
+.tool-btn {
+  appearance: none;
+  border: 1px solid gray;
+}
