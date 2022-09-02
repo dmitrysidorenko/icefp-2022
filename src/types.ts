@@ -15,14 +15,15 @@ export interface SimpleBlock {
 export interface ComplexBlock {
   id: string;
   shape: Shape;
-  children: Block[];
+  children: SimpleBlock[];
 }
 
-export type Block = SimpleBlock | ComplexBlock;
+// export type Block = SimpleBlock | ComplexBlock;
+export type Block = SimpleBlock;
 
 export interface Canvas {
   blockCounter: number;
-  blocks: Block[];
+  blocks: Block[],
   size: {
     width: number;
     height: number;
@@ -33,9 +34,9 @@ export function isSimple(block: Block): block is SimpleBlock {
   return "color" in block;
 }
 
-export function isComplex(block: Block): block is ComplexBlock {
-  return "children" in block;
-}
+// export function isComplex(block: Block): block is ComplexBlock {
+//   return "children" in block;
+// }
 
 export function initCanvas(props: { width: number; height: number }): Canvas {
   return {
@@ -47,7 +48,7 @@ export function initCanvas(props: { width: number; height: number }): Canvas {
           [0, 0],
           [400, 200]
         ],
-        children: []
+        color: [255, 255, 255, 255]
       }
     ],
     size: {

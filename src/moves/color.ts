@@ -2,24 +2,13 @@ import { Color, Canvas } from "../types";
 import { findBlock } from "../find-block";
 
 export default function ColorMove({
-  canvas,
+  blocks,
   blockId,
   color
 }: {
-  canvas: Canvas;
+  blocks: Canvas['blocks'];
   blockId: string;
   color: Color;
 }) {
-  const block = findBlock(canvas, blockId);
-  if (block && "color" in block) {
-    block.color = color;
-  } else {
-    if (!block) {
-      console.error(`Block "${blockId}" not found`);
-    } else {
-      console.error(
-        `Block "${blockId}" is not SimpleBlock. You can't color ComplexBlock`
-      );
-    }
-  }
+  return blocks.map((block) => block.id === blockId ? { ...block, color } : block)
 }

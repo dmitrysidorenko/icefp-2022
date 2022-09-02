@@ -4,50 +4,49 @@ import {
   useContext,
   PropsWithChildren,
   useMemo,
-  MouseEvent
+  MouseEvent,
+  MouseEventHandler,
+  useRef,
+  forwardRef
 } from "react";
-import { Block, SimpleBlock, ComplexBlock, Color } from "./types";
+import { Block, SimpleBlock, Color, Point, Orientation } from "./types";
 
 export interface EditorContext {
-  selectedBlockIds: string[];
   color: Color;
   selectColor: (color: Color) => void;
-  selectBlock: (blockId: string) => void;
-  deselectBlock: (blockId: string) => void;
   tool: Tool | null;
+  selectTool: (tool: Tool) => void;
+  colorBlock: (options: { blockId: string, color: Color }) => void;
+  lineSplitBlock: (options: { blockId: string, point: Point, orientation: Orientation }) => void;
+  pointSplitBlock: (options: { blockId: string, point: Point }) => void;
 }
+
 export const editorCtx = createContext<EditorContext>({
-  selectedBlockIds: [],
   color: [0, 0, 0, 1],
-  selectColor: () => {},
-  selectBlock: () => {},
-  deselectBlock: () => {},
-  tool: null
+  selectColor: () => { },
+  tool: null,
+  selectTool: () => { },
+  lineSplitBlock: () => { },
+  pointSplitBlock: () => { },
+  colorBlock: () => { },
 });
 
 export function useEditor() {
   return useContext(editorCtx);
 }
 
-export function EditorProvider({ children }: PropsWithChildren<unknown>) {
-  const [selectedBlockIds, setSelectedBlockIds] = useState<
-    EditorContext["selectedBlockIds"]
-  >([]);
+export function EditorProvider({ children, lineSplitBlock, pointSplitBlock: pintSplitBlock, colorBlock }: PropsWithChildren<Pick<EditorContext, 'colorBlock' | 'lineSplitBlock' | 'pointSplitBlock'>>) {
   const [color, setColor] = useState<EditorContext["color"]>([0, 0, 0, 1]);
+  const [tool, setTool] = useState<EditorContext["tool"]>(null);
   const value = useMemo<EditorContext>(() => {
     return {
-      selectedBlockIds,
-      selectBlock: (id) => {
-        console.log("select", id);
-        setSelectedBlockIds(Array.from(new Set(selectedBlockIds.concat(id))));
-      },
-      deselectBlock: (id) =>
-        setSelectedBlockIds(selectedBlockIds.filter((i) => i !== id)),
       color,
       selectColor: setColor,
-      tool: null
+      tool,
+      selectTool: setTool,
+      lineSplitBlock, pointSplitBlock: pintSplitBlock, colorBlock
     };
-  }, [selectedBlockIds, color]);
+  }, [color, tool]);
   return <editorCtx.Provider value={value}>{children}</editorCtx.Provider>;
 }
 
@@ -61,19 +60,17 @@ export interface EditorProps {
 
 export default function Editor({ blocks, size }: EditorProps) {
   return (
-    <EditorProvider>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "1rem"
-        }}
-      >
-        <p>Editor</p>
-        <Tools />
-        <CanvasRenderer blocks={blocks} size={size} />
-      </div>
-    </EditorProvider>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "1rem"
+      }}
+    >
+      <p>Editor</p>
+      <Tools />
+      <CanvasRenderer blocks={blocks} size={size} />
+    </div>
   );
 }
 
@@ -103,73 +100,47 @@ function CanvasRenderer({
 }
 
 function BlockRenderer({ block }: { block: Block }) {
-  const { selectedBlockIds, selectBlock, deselectBlock } = useEditor();
-  const isSelected = !!selectedBlockIds.find((id) => id === block.id);
-  const toggleBlock = (e: MouseEvent<HTMLElement>) => {
+  const ref = useRef<HTMLDivElement>(null)
+  const { tool, colorBlock, lineSplitBlock, pointSplitBlock, color } = useEditor();
+  const handleClick = (e: MouseEvent<HTMLElement>) => {
     e.stopPropagation();
-    console.log("toggle", block);
-    if (isSelected) {
-      deselectBlock(block.id);
-    } else {
-      selectBlock(block.id);
+    if (tool) {
+      switch (tool) {
+        case Tool.Color: {
+          return colorBlock({ blockId: block.id, color })
+        }
+        case Tool.HorizontalSplit:
+        case Tool.VerticalSplit: {
+          if (ref.current) {
+            const rect = ref.current.getBoundingClientRect()
+            return lineSplitBlock({
+              blockId: block.id,
+              orientation: tool === Tool.HorizontalSplit ? "horizontal" : "vertical",
+              point: [
+                block.shape[0][0] + (e.clientX - rect.left),
+                block.shape[0][1] + (e.clientY - rect.height - rect.top)
+              ]
+            })
+          }
+        }
+
+      }
     }
   };
-  console.log("isSelected", isSelected, block.id);
-  if ("color" in block) {
-    return (
-      <SimpleBlockRenderer
-        block={block}
-        selected={isSelected}
-        onClick={toggleBlock}
-      />
-    );
-  }
   return (
-    <ComplexBlockRenderer
+    <SimpleBlockRenderer
+      ref={ref}
       block={block}
-      selected={isSelected}
-      onClick={toggleBlock}
+      onClick={handleClick}
     />
   );
 }
 
-function ComplexBlockRenderer({
-  block: {
-    id,
-    shape: [p1, p2],
-    children
-  },
-  selected,
-  onClick
-}: {
-  block: ComplexBlock;
+const SimpleBlockRenderer = forwardRef<HTMLDivElement, {
+  block: SimpleBlock;
   selected?: boolean;
-  onClick: () => void;
-}) {
-  const w = p2[0] - p1[0];
-  const h = p2[1] - p1[1];
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        position: "absolute",
-        left: p1[0],
-        bottom: p1[1],
-        width: w,
-        height: h,
-        boxSizing: "content-box",
-        border: selected ? "2px solid red" : "1px solid gray",
-        zIndex: selected ? 1 : undefined
-      }}
-    >
-      {children.map((block) => (
-        <BlockRenderer key={block.id} block={block} />
-      ))}
-    </div>
-  );
-}
-
-function SimpleBlockRenderer({
+  onClick: MouseEventHandler;
+}>(({
   block: {
     id,
     color: [r, g, b, a],
@@ -177,15 +148,13 @@ function SimpleBlockRenderer({
   },
   selected,
   onClick
-}: {
-  block: SimpleBlock;
-  selected?: boolean;
-  onClick: () => void;
-}) {
+}, ref) => {
   const w = p2[0] - p1[0];
   const h = p2[1] - p1[1];
   return (
     <div
+      ref={ref}
+      data-id={id}
       onClick={onClick}
       style={{
         position: "absolute",
@@ -199,18 +168,16 @@ function SimpleBlockRenderer({
       }}
     ></div>
   );
-}
-
+})
 enum Tool {
-  "LineCut",
-  "PointCut",
-  "Color",
-  "Swap",
-  "Merge"
+  PointCut = "PointCut",
+  VerticalSplit = "VerticalSplit",
+  HorizontalSplit = "HorizontalSplit",
+  Color = "Color"
 }
 
 export function Tools() {
-  const { tool } = useEditor();
+  const { tool, selectTool } = useEditor();
   return (
     <div>
       <ul
@@ -227,25 +194,35 @@ export function Tools() {
             style={{
               border: tool === Tool.PointCut ? "1px solid black" : undefined
             }}
-            onClick={() => setSelectedTool(Tool.LineCut)}
+            onClick={() => selectTool(Tool.VerticalSplit)}
           >
-            Line Cut
+            Vertical Split
           </button>
         </li>
         <li>
-          <button onClick={() => setSelectedTool(Tool.PointCut)}>
+          <button
+            style={{
+              border: tool === Tool.PointCut ? "1px solid black" : undefined
+            }}
+            onClick={() => selectTool(Tool.HorizontalSplit)}
+          >
+            Horizontal Split
+          </button>
+        </li>
+        <li>
+          <button onClick={() => selectTool(Tool.PointCut)}>
             Point Cut
           </button>
         </li>
         <li>
-          <button onClick={() => setSelectedTool(Tool.Color)}>Color</button>
+          <button onClick={() => selectTool(Tool.Color)}>Color</button>
+        </li>
+        {/* <li>
+          <button onClick={() => selectTool(Tool.Swap)}>Swap</button>
         </li>
         <li>
-          <button onClick={() => setSelectedTool(Tool.Swap)}>Swap</button>
-        </li>
-        <li>
-          <button onClick={() => setSelectedTool(Tool.Merge)}>Merge</button>
-        </li>
+          <button onClick={() => selectTool(Tool.Merge)}>Merge</button>
+        </li> */}
       </ul>
     </div>
   );
