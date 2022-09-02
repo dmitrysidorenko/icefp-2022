@@ -1,13 +1,13 @@
 import { Block, initCanvas, Point, Shape } from "../types";
-import pica from 'pica';
+// import pica from 'pica';
 import PointCut, { PointCutBlock } from "./point-cut";
 
-const ipica = pica();
+// const ipica = pica();
 
 // ipica.resize()
 
 export function rasterize(target: any) {
-  const canvas = initCanvas({width: target.width, height: target.height});
+  const canvas = initCanvas({ width: target.width, height: target.height });
 }
 
 
