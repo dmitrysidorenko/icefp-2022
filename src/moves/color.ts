@@ -1,7 +1,6 @@
-import { Color, Canvas } from "../types";
-import { findBlock } from "../find-block";
+import { Color, Canvas, SimpleBlock, MoveCommand, BlockId } from "../types";
 
-export default function ColorMove({
+export const ColorMove: MoveCommand<{ blockId: BlockId, color: Color }> = ({
   blocks,
   blockId,
   color
@@ -9,6 +8,15 @@ export default function ColorMove({
   blocks: Canvas['blocks'];
   blockId: string;
   color: Color;
-}) {
-  return blocks.map((block) => block.id === blockId ? { ...block, color } : block)
+}) => {
+  return {
+    blocks: blocks.map((block) => block.id === blockId ? colorBlock(block, color) : block),
+    moves: [["color", blockId, color]]
+  }
 }
+
+export function colorBlock(block: SimpleBlock, color: Color): SimpleBlock {
+  return { ...block, color };
+}
+
+export default ColorMove

@@ -13,6 +13,7 @@ import {
 } from "react";
 import tinycolor2 from "tinycolor2";
 import { Block, SimpleBlock, Color, Point, Orientation } from "./types";
+import bim from 'browser-image-manipulation';
 
 enum Tool {
   PointCut = "PointCut",
@@ -39,7 +40,7 @@ export interface EditorContext {
     orientation: Orientation;
   }) => void;
   pointSplitBlock: (options: { blockId: string; point: Point }) => void;
-  rasterize: (options: { blockId: string }) => void
+  rasterize: (options: { blockId: string, target: HTMLCanvasElement }) => void
   reset: () => void
 }
 
@@ -127,6 +128,20 @@ function CanvasRenderer({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [point, setPoint] = useState<Point>([0, 0])
+
+  const [target, setTarget] = useState<HTMLCanvasElement | null>();
+
+  function setTaretImage(file: File) {
+    const canvas = document.createElement('canvas');
+    // canvas.getContext('2d')?.()
+    createImageBitmap(file).then(imageBitmap => {
+      canvas.width = imageBitmap.width;
+      canvas.height = imageBitmap.height;
+      canvas.getContext('2d')?.drawImage(imageBitmap, 0, 0);
+      setTarget(canvas);
+    });
+  }
+
   const trackHandler = useCallback<MouseEventHandler>((e) => {
     if (ref.current) {
       const rect = ref.current.getBoundingClientRect()
@@ -139,7 +154,7 @@ function CanvasRenderer({
 
   }, [])
 
-  const { tool, colorBlock, lineSplitBlock, pointSplitBlock, color } =
+  const { tool, colorBlock, lineSplitBlock, pointSplitBlock, color, rasterize } =
     useEditor();
   const handleBlockClick = (blockId: string) => {
     if (tool) {
@@ -174,6 +189,15 @@ function CanvasRenderer({
           }
           break
         }
+        case Tool.Rasterize: {
+          if (ref.current && target) {
+            rasterize({
+              blockId,
+              target,
+            });
+          }
+          break
+        }
       }
     }
   };
@@ -196,15 +220,15 @@ function CanvasRenderer({
         position: 'absolute',
         bottom: -20,
         left: 0
-      }}>{point[0]}, {point[1]} / {height - point[1]}</div>
+      }}>({point[0]}, {height - point[1]})</div>
       <CrossSection point={point} />
-      <CoverImage />
+      <CoverImage onFileSet={setTaretImage}/>
     </div>
   );
 }
 
-function CoverImage() {
-  const [opacity, setOpacity] = useState(0.8)
+function CoverImage({onFileSet}: {onFileSet: (file: File) => void}) {
+  const [opacity, setOpacity] = useState(0.2)
   const [imgUrl, setImg] = useState('')
   return (
     <>
@@ -216,10 +240,11 @@ function CoverImage() {
           const file = evt.target.files?.item(0)
           if (file) {
             setImg(URL.createObjectURL(file))
+            onFileSet(file);
           }
         }}
         />
-        <label>
+        <label style={{ display: 'flex' }}>
           Opacity
           <input type="range" step={0.1} min={0} max={1} value={opacity} onChange={e => setOpacity(+e.target.value)} />
         </label>
@@ -324,7 +349,7 @@ export function Tools() {
             className={classNames("tool-btn", tool === Tool.VerticalSplit && "selected")}
             onClick={() => selectTool(Tool.VerticalSplit)}
           >
-            split ┃ (1)
+            ┃ (1)
           </button>
         </li>
         <li>
@@ -332,18 +357,18 @@ export function Tools() {
             className={classNames("tool-btn", tool === Tool.HorizontalSplit && "selected")}
             onClick={() => selectTool(Tool.HorizontalSplit)}
           >
-            split ━ (2)
+            ━ (2)
           </button>
         </li>
         <li>
           <button
             className={classNames("tool-btn", tool === Tool.PointCut && "selected")}
-            onClick={() => selectTool(Tool.PointCut)}>split ┼ (3)</button>
+            onClick={() => selectTool(Tool.PointCut)}>┼ (3)</button>
         </li>
         <li>
           <button
             className={classNames("tool-btn", tool === Tool.Color && "selected")}
-            onClick={() => selectTool(Tool.Color)}>Color (4)</button>
+            onClick={() => selectTool(Tool.Color)}>💅 (4)</button>
           <input
             type="color"
             onChange={e => {

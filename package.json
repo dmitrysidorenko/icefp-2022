@@ -9,7 +9,10 @@
   ],
   "main": "src/index.tsx",
   "dependencies": {
+    "browser-image-manipulation": "^0.4.0",
     "imagescript": "^1.2.9",
+    "mobx": "^6.6.1",
+    "mobx-react-lite": "^3.4.0",
     "pica": "^9.0.1",
     "prettier": "^2.7.1",
     "react": "^18.2.0",

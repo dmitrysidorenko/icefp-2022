@@ -57,3 +57,18 @@ export function initCanvas(props: { width: number; height: number }): Canvas {
     }
   };
 }
+
+
+export type BlockId = string
+export type PCutMove = ["cut", BlockId, Point]
+export type LCutMove = ["cut", BlockId, [Orientation], [number]]
+export type ColorMove = ["color", BlockId, Color]
+export type SwapMove = ["swap", BlockId, BlockId]
+export type MergeMove = ["merge", BlockId, BlockId]
+
+export type Move = PCutMove | LCutMove | ColorMove | SwapMove | MergeMove
+export type MoveCommand<P = Record<string, unknown>> = (options: P & { blocks: Block[] }) => MoveCommandResult | Promise<MoveCommandResult>
+export interface MoveCommandResult {
+  blocks: Block[];
+  moves: Move[]
+}

@@ -3,47 +3,94 @@ import Editor, { EditorProvider } from "./Editor";
 import ColorMove from "./moves/color";
 import LineCut from "./moves/line-cut";
 import PointCut from "./moves/point-cut";
-import { SimpleBlock } from "./types";
+import { Block, Move, SimpleBlock } from "./types";
 import "./styles.css";
+import { RasterizeMove } from "./moves/rasterize";
 
 
 const canvasSize = {
-  width: 600,
-  height: 600
+  width: 400,
+  height: 400
 }
 
 const initialBlock: SimpleBlock = {
   id: "0",
   shape: [
     [0, 0],
-    [canvasSize.width, canvasSize.height]
+    [canvasSize.width - 1, canvasSize.height - 1]
   ],
   color: [255, 255, 255, 1]
 }
 
 export default function App() {
-  const [blocks, setBlocks] = useState<SimpleBlock[]>([
-    initialBlock,
-  ])
+  const [state, setState] = useState<{ blocks: Block[]; moves: Move[] }>({
+    blocks: [
+      initialBlock,
+    ],
+    moves: []
+  })
+  const [rasterizeDepth, setRasterizeDepth] = useState(1)
   return (
     <div className="App">
       <EditorProvider
-        colorBlock={({ blockId, color }) => setBlocks(blocks => ColorMove({ blockId, blocks, color }))}
-        lineSplitBlock={({ blockId, orientation, point }) => setBlocks(blocks => LineCut({
-          blockId, blocks, orientation, point
-        }))}
-        pointSplitBlock={({ blockId, point }) => setBlocks(blocks => PointCut({
-          blockId, blocks, point
-        }))}
-        size={{ height: 400, width: 400 }}
-        reset={() => setBlocks([initialBlock])}
-        rasterize={() => { }}
+        colorBlock={async ({ blockId, color }) => {
+          const result = await ColorMove({ blockId, blocks: state.blocks, color })
+          setState(s => ({
+            blocks: result.blocks,
+            moves: s.moves.concat(result.moves)
+          }))
+        }}
+        lineSplitBlock={async ({ blockId, orientation, point }) => {
+          const result = await LineCut({
+            blockId, blocks: state.blocks, orientation, point
+          })
+          setState(s => ({
+            blocks: result.blocks,
+            moves: s.moves.concat(result.moves)
+          }))
+        }}
+        pointSplitBlock={async ({ blockId, point }) => {
+          const result = await PointCut({
+            blockId, blocks: state.blocks, point
+          })
+          setState(s => ({
+            blocks: result.blocks,
+            moves: s.moves.concat(result.moves)
+          }))
+        }}
+        size={canvasSize}
+        reset={() => {
+          setState({
+            blocks: [initialBlock],
+            moves: []
+          })
+        }}
+        rasterize={async ({ blockId, target }) => {
+
+          const result = await RasterizeMove({ target, blockId, blocks: state.blocks })
+          setState(s => ({
+            blocks: result.blocks,
+            moves: s.moves.concat(result.moves)
+          }))
+        }}
       >
         <Editor
           size={canvasSize}
-          blocks={blocks}
+          blocks={state.blocks}
         />
       </EditorProvider>
+      <input type="number" min={1} max={20} step={1} value={rasterizeDepth} onChange={e => setRasterizeDepth(+e.target.value)} />
+      <div id="canvases"></div>
     </div >
   );
+}
+
+
+function asyncReduce<Acc, El>(fn: (acc: Acc, el: El) => Promise<Acc>, times: number) {
+  return new Promise((res) => {
+    // await fn()
+    if (times > 1) {
+
+    }
+  })
 }
