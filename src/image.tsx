@@ -49,30 +49,26 @@ export function getColors(image: Image, points: Point[]): Color[] {
   });
 }
 
-// export function getAllColors(image: Image): Color[] {
-//   const ctx = toCtx(image);
+/** Returns in CANVAS order from top-left */
+export function getAllColors(image: Image): Color[] {
+  const ctx = toCtx(image);
 
-//   const rgbas = ctx.getImageData(0, 0, image.width, image.height).data;
-//   const colors = groupByChunks(rgbas, 4);
+  const rgbas = ctx.getImageData(0, 0, image.width, image.height).data;
+  
+  const colors: Color[] = []
 
-//   return points.map(point => {
-//     const invertedPoint = invertY(image, point);
-//     const data = ctx.getImageData(invertedPoint[0], invertedPoint[1], 1, 1).data;
-
-//     return [data[0], data[1], data[2], data[3]];
-//   });
-// }
-
-function groupByChunks<T>(things: T[], chunkSize: number): T[][] {
-  const group: T[][] = [];
-  for (var i = 0, j = 0; i < things.length; i++) {
-      if (i >= chunkSize && i % chunkSize === 0)
-          j++;
-      group[j] = group[j] || [];
-      group[j].push(things[i])
+  for (let i = 0; i < image.width * image.height; i++) {
+    colors.push([
+      rgbas[i * 4],
+      rgbas[i * 4 + 1] ,
+      rgbas[i * 4 + 2],
+      rgbas[i * 4 + 3],
+    ]);
   }
-  return group;
+
+  return colors;
 }
+
 
 function toCtx(image: Image): CanvasRenderingContext2D {
   const canvas = document.createElement('canvas');
