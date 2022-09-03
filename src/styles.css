@@ -16,15 +16,23 @@
 
 .block {
   border: 1px solid gray;
-  border-width: 1px;
 }
 
-.camvas {
-  border: 1xp solid gray;
-  border-width: 1px;
+.canvas {
+  position: relative;
+  cursor: none;
 }
 
 .tools>li {
   display: flex;
   justify-content: center;
+}
+
+.CoverImage_controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: absolute;
+  bottom: -80px;
+  right: 0;
 }

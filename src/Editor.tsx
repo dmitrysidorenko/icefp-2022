@@ -9,9 +9,19 @@ import {
   useRef,
   forwardRef,
   useCallback,
+  useEffect,
 } from "react";
 import tinycolor2 from "tinycolor2";
 import { Block, SimpleBlock, Color, Point, Orientation } from "./types";
+
+enum Tool {
+  PointCut = "PointCut",
+  VerticalSplit = "VerticalSplit",
+  HorizontalSplit = "HorizontalSplit",
+  Color = "Color",
+  Rasterize = "Rasterize",
+}
+
 
 export interface EditorContext {
   size: {
@@ -100,12 +110,13 @@ export default function Editor({ blocks, size }: EditorProps) {
         gap: "1rem",
       }}
     >
-      <p>Editor</p>
       <Tools />
       <CanvasRenderer blocks={blocks} size={size} />
+      <KeyboardListener />
     </div>
   );
 }
+
 
 function CanvasRenderer({
   blocks,
@@ -176,8 +187,6 @@ function CanvasRenderer({
         position: "relative",
         width,
         height,
-        // border: "1px solid gray",
-        // boxSizing: "content-box",
       }}
     >
       {blocks.map((block) => (
@@ -189,8 +198,34 @@ function CanvasRenderer({
         left: 0
       }}>{point[0]}, {point[1]} / {height - point[1]}</div>
       <CrossSection point={point} />
+      <CoverImage />
     </div>
   );
+}
+
+function CoverImage() {
+  const [opacity, setOpacity] = useState(0.8)
+  const [imgUrl, setImg] = useState('')
+  return (
+    <>
+      {imgUrl && <img
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', opacity, pointerEvents: 'none' }}
+        src={imgUrl} />}
+      <div className="CoverImage_controls">
+        <input accept="image/*" type='file' id="imgInp" onChange={evt => {
+          const file = evt.target.files?.item(0)
+          if (file) {
+            setImg(URL.createObjectURL(file))
+          }
+        }}
+        />
+        <label>
+          Opacity
+          <input type="range" step={0.1} min={0} max={1} value={opacity} onChange={e => setOpacity(+e.target.value)} />
+        </label>
+      </div>
+    </>
+  )
 }
 
 
@@ -238,19 +273,36 @@ const SimpleBlockRenderer = forwardRef<
           width: w,
           height: h,
           background: `rgb(${r} ${g} ${b} / ${a})`,
-          // border: selected ? "2px solid red" : "1px solid gray",
-          // zIndex: selected ? 1 : undefined,
-          // boxSizing: 'content-box'
         }}
       ></div>
     );
   }
 );
-enum Tool {
-  PointCut = "PointCut",
-  VerticalSplit = "VerticalSplit",
-  HorizontalSplit = "HorizontalSplit",
-  Color = "Color",
+
+
+function KeyboardListener() {
+  const { selectTool } = useEditor()
+  useEffect(() => {
+    const cb = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case '1':
+          return selectTool(Tool.VerticalSplit)
+        case '2':
+          return selectTool(Tool.HorizontalSplit)
+        case '3':
+          return selectTool(Tool.PointCut)
+        case '4':
+          return selectTool(Tool.Color)
+        case '5':
+          return selectTool(Tool.Rasterize)
+      }
+    }
+    document.addEventListener('keypress', cb)
+    return () => {
+      document.removeEventListener('keypress', cb)
+    }
+  }, [])
+  return null
 }
 
 export function Tools() {
@@ -272,7 +324,7 @@ export function Tools() {
             className={classNames("tool-btn", tool === Tool.VerticalSplit && "selected")}
             onClick={() => selectTool(Tool.VerticalSplit)}
           >
-            Vertical Split
+            split ┃ (1)
           </button>
         </li>
         <li>
@@ -280,18 +332,18 @@ export function Tools() {
             className={classNames("tool-btn", tool === Tool.HorizontalSplit && "selected")}
             onClick={() => selectTool(Tool.HorizontalSplit)}
           >
-            Horizontal Split
+            split ━ (2)
           </button>
         </li>
         <li>
           <button
             className={classNames("tool-btn", tool === Tool.PointCut && "selected")}
-            onClick={() => selectTool(Tool.PointCut)}>Point Cut</button>
+            onClick={() => selectTool(Tool.PointCut)}>split ┼ (3)</button>
         </li>
         <li>
           <button
             className={classNames("tool-btn", tool === Tool.Color && "selected")}
-            onClick={() => selectTool(Tool.Color)}>Color</button>
+            onClick={() => selectTool(Tool.Color)}>Color (4)</button>
           <input
             type="color"
             onChange={e => {
@@ -303,8 +355,18 @@ export function Tools() {
                 selectColor(newColor)
               }
             }}
-            value={`rgb(${color[0]} ${color[1]} ${color[2]} / ${color[3]})`}
+            value={`#${tinycolor2({
+              r: color[0],
+              g: color[1],
+              b: color[2],
+              a: color[3]
+            }).toHex()}`}
           />
+        </li>
+        <li>
+          <button
+            className={classNames("tool-btn", tool === Tool.Rasterize && "selected")}
+            onClick={() => selectTool(Tool.Rasterize)}>Rasterize (5)</button>
         </li>
         <li>
           <button
