@@ -60,11 +60,11 @@ export function initCanvas(props: { width: number; height: number }): Canvas {
 
 
 export type BlockId = string
-export type PCutMove = ["cut", BlockId, Point]
-export type LCutMove = ["cut", BlockId, [Orientation], [number]]
-export type ColorMove = ["color", BlockId, Color]
-export type SwapMove = ["swap", BlockId, BlockId]
-export type MergeMove = ["merge", BlockId, BlockId]
+export type PCutMove = { name: "pcut", blockId: BlockId, point: Point, blockShape: Shape }
+export type LCutMove = { name: "lcut", blockId: BlockId, point: Point, orientation: Orientation, blockShape: Shape }
+export type ColorMove = { name: "color", blockId: BlockId, color: Color, blockShape: Shape }
+export type SwapMove = { name: "swap", block1Id: BlockId, block2Id: BlockId, block1Shape: Shape, block2Shape: Shape }
+export type MergeMove = { name: "merge", block1Id: BlockId, block2Id: BlockId, block1Shape: Shape, block2Shape: Shape }
 
 export type Move = PCutMove | LCutMove | ColorMove | SwapMove | MergeMove
 export type MoveCommand<P = Record<string, unknown>> = (options: P & { blocks: Block[] }) => MoveCommandResult | Promise<MoveCommandResult>

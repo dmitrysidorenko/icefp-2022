@@ -7,6 +7,7 @@ import { Block, Move, SimpleBlock } from "./types";
 import "./styles.css";
 import { RasterizeMove } from "./moves/rasterize";
 import { ImageLogger, ImageTest } from "./image";
+import MovesViewer from "./moves-viewer";
 
 
 const canvasSize = {
@@ -83,6 +84,7 @@ export default function App() {
       </EditorProvider>
       <input style={{ marginTop: 100 }} type="number" min={1} max={20} step={1} value={rasterizeDepth} onChange={e => setRasterizeDepth(+e.target.value)} />
       <ImageTest></ImageTest>
+      <MovesViewer moves={state.moves} />
     </div >
   );
 }

@@ -1,4 +1,4 @@
-import { Block, BlockId, MoveCommand, PCutMove, Point, SimpleBlock } from "../types";
+import { Block, BlockId, Move, MoveCommand, MoveCommandResult, PCutMove, Point, Shape, SimpleBlock } from "../types";
 
 
 export const PointCut: MoveCommand<{ blockId: BlockId, point: Point }> = ({
@@ -10,25 +10,24 @@ export const PointCut: MoveCommand<{ blockId: BlockId, point: Point }> = ({
   blockId: string;
   point: Point;
 }) => {
-  return {
-    blocks: blocks.reduce<SimpleBlock[]>((resultBlocks, block) => {
-      if (block.id === blockId) {
-        const isInside = isPointInsideBlock(block, point)
-        if (isInside) {
-          resultBlocks.push(
-            ...PointCutBlock(block, point)
-          )
-          return resultBlocks
-        }
+  return blocks.reduce<MoveCommandResult>((acc, block) => {
+    if (block.id === blockId) {
+      const isInside = isPointInsideBlock(block, point)
+      if (isInside) {
+        const { blocks: newBlocks, moves } = PointCutBlock(block, point)
+        acc.blocks.push(
+          ...newBlocks
+        )
+        acc.moves.push(...moves)
+        return acc
       }
-      resultBlocks.push(block)
-      return resultBlocks
-    }, []),
-    moves: [makePointCutMove({ blockId, point })]
-  }
+    }
+    acc.blocks.push(block)
+    return acc
+  }, { blocks: [...blocks], moves: [] })
 }
 
-export function PointCutBlock(block: SimpleBlock, [x, y]: Point): SimpleBlock[] {
+export function PointCutBlock(block: Block, [x, y]: Point): { blocks: Block[]; moves: Move[] } {
   const [p1, p2] = block.shape;
 
   const newBlock1: SimpleBlock = {
@@ -57,17 +56,22 @@ export function PointCutBlock(block: SimpleBlock, [x, y]: Point): SimpleBlock[] 
       [x, p2[1]]
     ]
   };
-  return [newBlock1, newBlock2, newBlock3, newBlock4];
+  return {
+    blocks: [newBlock1, newBlock2, newBlock3, newBlock4],
+    moves: [makePointCutMove({ blockId: block.id, point: [x, y], shape: [[...p1], [...p2]] })]
+  };
 }
 
 export function makePointCutMove({
   blockId,
-  point
+  point,
+  shape
 }: {
   blockId: string;
   point: Point;
+  shape: Shape
 }): PCutMove {
-  return ["cut", blockId, point]
+  return { name: "pcut", blockId, point, blockShape: shape }
 }
 
 

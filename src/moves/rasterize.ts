@@ -1,4 +1,4 @@
-import { Block, Color, initCanvas, MoveCommand, Point, Shape, SimpleBlock } from "../types";
+import { Block, Color, initCanvas, Move, MoveCommand, MoveCommandResult, Point, Shape, SimpleBlock } from "../types";
 import ColorMove, { colorBlock } from "./color";
 import bim from 'browser-image-manipulation';
 import PointCut, { PointCutBlock } from "./point-cut";
@@ -30,12 +30,20 @@ export const RasterizeMove: MoveCommand<{
 
     const all = await Promise.all(allRasterized);
 
-    return { blocks: all.flat(), moves: [] };
+    return {
+      blocks: all.reduce<Block[]>((acc, el) => {
+        acc.push(...el.blocks)
+        return acc
+      }, []), moves: all.reduce<Move[]>((acc, el) => {
+        acc.push(...el.moves)
+        return acc
+      }, [])
+    };
   }
 
 
 
-async function rasterizeBlock(target: Image, block: Block) {
+async function rasterizeBlock(target: Image, block: Block): Promise<MoveCommandResult> {
   const scaled = await resizeImage(target, 2, 2);
 
   const [blc, brc, trc, tlc] = getColors(scaled, [
@@ -48,17 +56,20 @@ async function rasterizeBlock(target: Image, block: Block) {
   const diffs = [blc, brc, trc, tlc].map(c => colorDiff(c, block.color));
 
   if (Math.max(...diffs) === 0) {
-    return [block];
+    return { blocks: [block], moves: [] };
   }
 
-  const [bl, br, tr, tl] = PointCutBlock(block, center(block.shape));
+  const { blocks: [bl, br, tr, tl], moves } = PointCutBlock(block, center(block.shape));
 
-  return [
-    colorBlock(bl, blc),
-    colorBlock(br, brc),
-    colorBlock(tr, trc),
-    colorBlock(tl, tlc),
-  ];
+  return [[bl, blc], [br, brc], [tr, trc], [tl, tlc]].reduce<MoveCommandResult>((acc: MoveCommandResult, el) => {
+    const r = colorBlock(el[0] as Block, el[1] as Color)
+    acc.blocks.push(...r.blocks)
+    acc.moves.push(...r.moves)
+    return acc
+  }, {
+    blocks: [],
+    moves: [...moves]
+  })
 }
 
 
