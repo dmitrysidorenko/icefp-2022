@@ -24,7 +24,7 @@ export const PointCut: MoveCommand<{ blockId: BlockId, point: Point }> = ({
     }
     acc.blocks.push(block)
     return acc
-  }, { blocks: [...blocks], moves: [] })
+  }, { blocks: [], moves: [] })
 }
 
 export function PointCutBlock(block: Block, [x, y]: Point): { blocks: Block[]; moves: Move[] } {

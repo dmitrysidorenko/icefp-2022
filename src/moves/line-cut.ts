@@ -31,7 +31,7 @@ const LineCut: MoveCommand<{ blockId: BlockId, orientation: Orientation, point: 
     }
     resultBlocks.blocks.push(block)
     return resultBlocks
-  }, { blocks, moves: [] })
+  }, { blocks: [], moves: [] })
 }
 
 export function makeLineCutMove({
