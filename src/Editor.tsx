@@ -127,7 +127,8 @@ function CanvasRenderer({
   size: { width: number; height: number };
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [point, setPoint] = useState<Point>([0, 0])
+  const pointRef = useRef<Point>([0, 0])
+  // const [point, setPoint] = useState<Point>([0, 0])
 
   const [target, setTarget] = useState<Image>();
 
@@ -142,7 +143,8 @@ function CanvasRenderer({
         e.clientX - rect.left,
         e.clientY - rect.top
       ]
-      setPoint(newPoint)
+      // setPoint(newPoint)
+      pointRef.current = newPoint
     }
 
   }, [])
@@ -150,6 +152,7 @@ function CanvasRenderer({
   const { tool, colorBlock, lineSplitBlock, pointSplitBlock, color, rasterize } =
     useEditor();
   const handleBlockClick = (blockId: string) => {
+    const point = pointRef.current
     if (tool) {
       const newPoint: Point = [
         point[0],
@@ -209,18 +212,36 @@ function CanvasRenderer({
       {blocks.map((block) => (
         <BlockRenderer key={block.id} block={block} onClick={handleBlockClick} />
       ))}
-      <div style={{
-        position: 'absolute',
-        bottom: -20,
-        left: 0
-      }}>({point[0]}, {height - point[1]})</div>
-      <CrossSection point={point} />
-      <CoverImage onFileSet={setTaretImage}/>
+      <PointDebugger pointRef={pointRef} />
+      <CrossSection pointRef={pointRef} height={height} />
+      <CoverImage onFileSet={setTaretImage} />
     </div>
   );
 }
 
-function CoverImage({onFileSet}: {onFileSet: (file: File) => void}) {
+function PointDebugger({ pointRef }: { pointRef: React.MutableRefObject<Point> }) {
+  const [point, setPoint] = useState(pointRef.current)
+  useEffect(() => {
+    let af = 0
+    const cb = () => {
+      af = requestAnimationFrame((ts) => {
+        setPoint(p => pointRef.current !== p ? pointRef.current : p)
+        cb()
+      })
+    }
+    cb()
+    return () => {
+      cancelAnimationFrame(af)
+    }
+  }, [])
+  return <div style={{
+    position: 'absolute',
+    bottom: -20,
+    left: 0
+  }}>({point[0]}, {point[1]})</div>
+}
+
+function CoverImage({ onFileSet }: { onFileSet: (file: File) => void }) {
   const [opacity, setOpacity] = useState(0.2)
   const [imgUrl, setImg] = useState('')
   return (
@@ -402,7 +423,21 @@ export function Tools() {
   );
 }
 
-function CrossSection({ point }: { point: Point }) {
+function CrossSection({ pointRef, height }: { pointRef: React.MutableRefObject<Point>; height: number }) {
+  const [point, setPoint] = useState(pointRef.current)
+  useEffect(() => {
+    let af = 0
+    const cb = () => {
+      af = requestAnimationFrame((ts) => {
+        setPoint(p => pointRef.current !== p ? pointRef.current : p)
+        cb()
+      })
+    }
+    cb()
+    return () => {
+      cancelAnimationFrame(af)
+    }
+  }, [])
   return (
     <>
       {/* x */}

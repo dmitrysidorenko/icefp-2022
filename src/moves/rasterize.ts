@@ -30,7 +30,7 @@ export const RasterizeMove: MoveCommand<{
 
     const all = await Promise.all(allRasterized);
 
-    return {blocks: all.flat(), moves: []};
+    return { blocks: all.flat(), moves: [] };
   }
 
 

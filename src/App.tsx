@@ -81,18 +81,9 @@ export default function App() {
           blocks={state.blocks}
         />
       </EditorProvider>
-      <input type="number" min={1} max={20} step={1} value={rasterizeDepth} onChange={e => setRasterizeDepth(+e.target.value)} />
+      <input style={{ marginTop: 100 }} type="number" min={1} max={20} step={1} value={rasterizeDepth} onChange={e => setRasterizeDepth(+e.target.value)} />
       <ImageTest></ImageTest>
     </div >
   );
 }
 
-
-function asyncReduce<Acc, El>(fn: (acc: Acc, el: El) => Promise<Acc>, times: number) {
-  return new Promise((res) => {
-    // await fn()
-    if (times > 1) {
-
-    }
-  })
-}

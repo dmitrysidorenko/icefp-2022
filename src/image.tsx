@@ -3,7 +3,6 @@ import { observable } from 'mobx';
 import { observer } from "mobx-react-lite";
 import { Color, Point, Shape, shapeSize } from "./types";
 
-
 export type Image = ImageBitmap;
 
 
