@@ -6,16 +6,24 @@ import PointCut from "./moves/point-cut";
 import { SimpleBlock } from "./types";
 import "./styles.css";
 
+
+const canvasSize = {
+  width: 600,
+  height: 600
+}
+
+const initialBlock: SimpleBlock = {
+  id: "0",
+  shape: [
+    [0, 0],
+    [canvasSize.width, canvasSize.height]
+  ],
+  color: [255, 255, 255, 1]
+}
+
 export default function App() {
   const [blocks, setBlocks] = useState<SimpleBlock[]>([
-    {
-      id: "0.0",
-      shape: [
-        [0, 0],
-        [400, 400]
-      ],
-      color: [255, 255, 255, 1]
-    },
+    initialBlock,
   ])
   return (
     <div className="App">
@@ -28,9 +36,11 @@ export default function App() {
           blockId, blocks, point
         }))}
         size={{ height: 400, width: 400 }}
+        reset={() => setBlocks([initialBlock])}
+        rasterize={() => { }}
       >
         <Editor
-          size={{ height: 400, width: 400 }}
+          size={canvasSize}
           blocks={blocks}
         />
       </EditorProvider>

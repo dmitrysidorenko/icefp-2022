@@ -10,6 +10,7 @@ import {
   forwardRef,
   useCallback,
 } from "react";
+import tinycolor2 from "tinycolor2";
 import { Block, SimpleBlock, Color, Point, Orientation } from "./types";
 
 export interface EditorContext {
@@ -28,6 +29,8 @@ export interface EditorContext {
     orientation: Orientation;
   }) => void;
   pointSplitBlock: (options: { blockId: string; point: Point }) => void;
+  rasterize: (options: { blockId: string }) => void
+  reset: () => void
 }
 
 export const editorCtx = createContext<EditorContext>({
@@ -42,6 +45,8 @@ export const editorCtx = createContext<EditorContext>({
   lineSplitBlock: () => { },
   pointSplitBlock: () => { },
   colorBlock: () => { },
+  rasterize: () => { },
+  reset: () => { },
 });
 
 export function useEditor() {
@@ -51,11 +56,13 @@ export function useEditor() {
 export function EditorProvider({
   children,
   lineSplitBlock,
-  pointSplitBlock: pintSplitBlock,
+  pointSplitBlock,
   colorBlock,
+  reset,
+  rasterize,
   size
 }: PropsWithChildren<
-  Pick<EditorContext, "colorBlock" | "lineSplitBlock" | "pointSplitBlock" | 'size'>
+  Pick<EditorContext, "colorBlock" | "lineSplitBlock" | "pointSplitBlock" | 'size' | "reset" | 'rasterize'>
 >) {
   const [color, setColor] = useState<EditorContext["color"]>([0, 0, 0, 1]);
   const [tool, setTool] = useState<EditorContext["tool"]>(null);
@@ -66,11 +73,13 @@ export function EditorProvider({
       tool,
       selectTool: setTool,
       lineSplitBlock,
-      pointSplitBlock: pintSplitBlock,
+      pointSplitBlock,
       colorBlock,
-      size
+      size,
+      reset,
+      rasterize
     };
-  }, [color, tool, size]);
+  }, [color, tool, size, reset, rasterize]);
   return <editorCtx.Provider value={value}>{children}</editorCtx.Provider>;
 }
 
@@ -162,13 +171,13 @@ function CanvasRenderer({
     <div
       ref={ref}
       onMouseMove={trackHandler}
-      className="Canvas"
+      className="Canvas canvas"
       style={{
         position: "relative",
         width,
         height,
-        border: "1px solid gray",
-        boxSizing: "content-box",
+        // border: "1px solid gray",
+        // boxSizing: "content-box",
       }}
     >
       {blocks.map((block) => (
@@ -221,6 +230,7 @@ const SimpleBlockRenderer = forwardRef<
         ref={ref}
         data-id={id}
         onClick={onClick}
+        className="block"
         style={{
           position: "absolute",
           left: p1[0],
@@ -228,8 +238,9 @@ const SimpleBlockRenderer = forwardRef<
           width: w,
           height: h,
           background: `rgb(${r} ${g} ${b} / ${a})`,
-          border: selected ? "2px solid red" : "1px solid gray",
-          zIndex: selected ? 1 : undefined,
+          // border: selected ? "2px solid red" : "1px solid gray",
+          // zIndex: selected ? 1 : undefined,
+          // boxSizing: 'content-box'
         }}
       ></div>
     );
@@ -243,10 +254,11 @@ enum Tool {
 }
 
 export function Tools() {
-  const { tool, selectTool } = useEditor();
+  const { tool, selectTool, color, selectColor, reset } = useEditor();
   return (
     <div>
       <ul
+        className="tools"
         style={{
           margin: 0,
           padding: 0,
@@ -280,6 +292,24 @@ export function Tools() {
           <button
             className={classNames("tool-btn", tool === Tool.Color && "selected")}
             onClick={() => selectTool(Tool.Color)}>Color</button>
+          <input
+            type="color"
+            onChange={e => {
+              console.log(e.target.value)
+              const c = tinycolor2(e.target.value)
+              if (c.isValid()) {
+                const { r, g, b, a } = c.toRgb()
+                const newColor: Color = [r, g, b, a]
+                selectColor(newColor)
+              }
+            }}
+            value={`rgb(${color[0]} ${color[1]} ${color[2]} / ${color[3]})`}
+          />
+        </li>
+        <li>
+          <button
+            className={classNames("tool-btn")}
+            onClick={() => reset()}>RESET</button>
         </li>
         {/* <li>
           <button onClick={() => selectTool(Tool.Swap)}>Swap</button>

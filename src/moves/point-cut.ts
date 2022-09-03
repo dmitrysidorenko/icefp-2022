@@ -31,17 +31,17 @@ export default function PointCut({
           color: block.color,
           shape: [[...point], [...p2]]
         };
-        // const newBlock4: SimpleBlock = {
-        //   id: `${block.id}.3`,
-        //   color: block.color,
-        //   shape: [[p1[0], point[1]], [point[0], p2[1]]]
-        // };
+        const newBlock4: SimpleBlock = {
+          id: `${block.id}.3`,
+          color: block.color,
+          shape: [[p1[0], point[1]], [point[0], p2[1]]]
+        };
         resultBlocks.push(
+          newBlock4,
+          newBlock3,
           newBlock1,
-          // newBlock2,
-          // newBlock3,
-          // newBlock4
-          )
+          newBlock2,
+        )
         return resultBlocks
       }
     }

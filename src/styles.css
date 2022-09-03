@@ -13,3 +13,18 @@
   background: black;
   color: white;
 }
+
+.block {
+  border: 1px solid gray;
+  border-width: 1px;
+}
+
+.camvas {
+  border: 1xp solid gray;
+  border-width: 1px;
+}
+
+.tools>li {
+  display: flex;
+  justify-content: center;
+}
