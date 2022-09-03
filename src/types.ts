@@ -72,3 +72,12 @@ export interface MoveCommandResult {
   blocks: Block[];
   moves: Move[]
 }
+
+
+export function shapeSize(shape: Shape): { width: number, height: number } {
+  return {
+    width: shape[1][0] - shape[0][0],
+    height: shape[1][1] - shape[0][1],
+  }
+}
+
