@@ -12,8 +12,8 @@ import {
   useEffect,
 } from "react";
 import tinycolor2 from "tinycolor2";
+import { Image, imageFromFile } from "./image";
 import { Block, SimpleBlock, Color, Point, Orientation } from "./types";
-import bim from 'browser-image-manipulation';
 
 enum Tool {
   PointCut = "PointCut",
@@ -40,7 +40,7 @@ export interface EditorContext {
     orientation: Orientation;
   }) => void;
   pointSplitBlock: (options: { blockId: string; point: Point }) => void;
-  rasterize: (options: { blockId: string, target: HTMLCanvasElement }) => void
+  rasterize: (options: { blockId: string, target: Image }) => void
   reset: () => void
 }
 
@@ -129,17 +129,10 @@ function CanvasRenderer({
   const ref = useRef<HTMLDivElement>(null);
   const [point, setPoint] = useState<Point>([0, 0])
 
-  const [target, setTarget] = useState<HTMLCanvasElement | null>();
+  const [target, setTarget] = useState<Image>();
 
   function setTaretImage(file: File) {
-    const canvas = document.createElement('canvas');
-    // canvas.getContext('2d')?.()
-    createImageBitmap(file).then(imageBitmap => {
-      canvas.width = imageBitmap.width;
-      canvas.height = imageBitmap.height;
-      canvas.getContext('2d')?.drawImage(imageBitmap, 0, 0);
-      setTarget(canvas);
-    });
+    imageFromFile(file).then(setTarget);
   }
 
   const trackHandler = useCallback<MouseEventHandler>((e) => {

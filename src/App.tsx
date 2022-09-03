@@ -6,6 +6,7 @@ import PointCut from "./moves/point-cut";
 import { Block, Move, SimpleBlock } from "./types";
 import "./styles.css";
 import { RasterizeMove } from "./moves/rasterize";
+import { ImageLogger, ImageTest } from "./image";
 
 
 const canvasSize = {
@@ -32,6 +33,7 @@ export default function App() {
   const [rasterizeDepth, setRasterizeDepth] = useState(1)
   return (
     <div className="App">
+      <ImageLogger></ImageLogger>
       <EditorProvider
         colorBlock={async ({ blockId, color }) => {
           const result = await ColorMove({ blockId, blocks: state.blocks, color })
@@ -80,7 +82,7 @@ export default function App() {
         />
       </EditorProvider>
       <input type="number" min={1} max={20} step={1} value={rasterizeDepth} onChange={e => setRasterizeDepth(+e.target.value)} />
-      <div id="canvases"></div>
+      <ImageTest></ImageTest>
     </div >
   );
 }
