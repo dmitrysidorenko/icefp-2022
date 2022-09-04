@@ -3,7 +3,7 @@ import LineCut from "./line-cut";
 import PointCut from "./point-cut";
 import { getImageData, Image } from '../image';
 import { findBlock } from "../find-block";
-import { imageDataBlockAvgColor, imageDataBlockDiff } from "../color-diff";
+import { imageDataBlockAvgColor, imageDataBlockDiff, imageDataBlockFrequentColor } from "../color-diff";
 import { colorBlock } from "./color";
 
 
@@ -12,8 +12,8 @@ export async function bruteForceBlock(blocks: SimpleBlock[], blockId: string, im
   const imageData = await getImageData(image)
 
   const variants = [
-    ...await lineCutVariants(block, "horizontal"),
-    ...await lineCutVariants(block, "vertical"),
+    ...lineCutVariants(block, "horizontal"),
+    ...lineCutVariants(block, "vertical"),
     ...pointCutVariants(block),
   ];
 
@@ -21,8 +21,13 @@ export async function bruteForceBlock(blocks: SimpleBlock[], blockId: string, im
 
   const bestMoveResult = bestMove(block, imageData, colorized);
 
-  if (bestMoveResult && bestMoveResult[0] < 0) {
-    return bestMoveResult[1];
+  if (bestMoveResult) {
+    const move = bestMoveResult[1];
+    return {
+      blocks: [...move.blocks, ...blocks.filter(b => b.id !== blockId)],
+      moves: move.moves,
+      cost: move.cost
+    }
   }
 
   return {
@@ -109,41 +114,46 @@ function pointCutVariants(block: SimpleBlock): MoveCommandResult[] {
   return cuts;
 }
 
-async function lineCutVariants(block: SimpleBlock, orientation: Orientation): Promise<MoveCommandResult[]> {
+function lineCutVariants(block: SimpleBlock, orientation: Orientation): MoveCommandResult[] {
   const size = shapeSize(block.shape);
   const steps = orientation === "horizontal" ? cutSteps(size.height) : cutSteps(size.width);
 
-  const promises = steps.map(async (step) => await LineCut({
+  return steps.map((step) => LineCut({
     blockId: block.id,
     blocks: [block],
     orientation,
-    point: [block.shape[0][0] + 1, block.shape[0][1] + step],
-  }));
-
-  return await Promise.all(promises);
+    point: orientation === "horizontal" ? [block.shape[0][0] + 1, block.shape[0][1] + step] : [block.shape[0][0] + step, block.shape[0][1] + 1]
+  }) as MoveCommandResult);
 }
 
 function cutSteps(size: number): number[] {
-  const cuts: number[] = [];
+  const cuts: {[key: number]: unknown} = {};
 
   for (let i = 10; i < size; i++) {
-    if (size % i === 0) {
-      cuts.push(i);
+    if (size % i !== 0) {
+      continue;
+    }
+
+    for (let j = i; j < size; j += i) {
+      cuts[j] = 1;
     }
   }
 
-  return cuts;
+  return [...Object.keys(cuts)].map(k => parseInt(k));
 }
 
-function defaultWorthTheEffort(cost: number, diff: number) {
-  return cost > diff;
-}
-
-function ColorBlockIfNeeded(block: Block, imageData: ImageData, worthTheEffort: (cost: number, diff: number) => boolean = defaultWorthTheEffort): MoveCommandResult {
-  const avgColor = imageDataBlockAvgColor(imageData, block)
+function ColorBlockIfNeeded(block: Block, imageData: ImageData): MoveCommandResult {
+  // const avgColor = imageDataBlockAvgColor(imageData, block)
+  const avgColor = imageDataBlockFrequentColor(imageData, block);
   const { blocks: [coloredBlock], moves, cost } = colorBlock(block, avgColor)
-  const diff = imageDataBlockDiff(coloredBlock, imageData)
-  if (worthTheEffort(cost, diff)) {
+  const originalDiff = imageDataBlockDiff(block, imageData)
+  const coloredDiff = imageDataBlockDiff(coloredBlock, imageData)
+
+  // if (JSON.stringify(block.shape) === JSON.stringify([[0, 0], [40, 399]])) {
+  //   console.log(block, avgColor, originalDiff, coloredDiff, cost);
+  // }
+
+  if (coloredDiff + cost <= originalDiff) {
     return {
       blocks: [coloredBlock],
       moves,
@@ -151,7 +161,7 @@ function ColorBlockIfNeeded(block: Block, imageData: ImageData, worthTheEffort: 
     }
   }
   return {
-    blocks: [],
+    blocks: [block],
     moves: [],
     cost: 0
   }

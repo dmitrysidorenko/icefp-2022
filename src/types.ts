@@ -79,8 +79,8 @@ export interface MoveCommandResult {
 
 export function shapeSize(shape: Shape): Size {
   return {
-    width: shape[1][0] - shape[0][0],
-    height: shape[1][1] - shape[0][1],
+    width: shape[1][0] - shape[0][0] + 1,
+    height: shape[1][1] - shape[0][1] + 1,
   }
 }
 

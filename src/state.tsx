@@ -16,13 +16,16 @@ import LineCut from "./moves/line-cut";
 import PointCut from "./moves/point-cut";
 import { RasterizeMove } from "./moves/rasterize";
 import { imageBlockDiff } from "./color-diff";
+import { bruteForceAllBlocks, bruteForceBlock } from "./moves/brute-force";
 
 export type Tool =
   | "PointCut"
   | "VerticalSplit"
   | "HorizontalSplit"
   | "Color"
-  | "Rasterize";
+  | "Rasterize"
+  | "Bruteforce"
+  | "BruteforceAll";
 
 export const initialBlock = (size: Size): SimpleBlock => {
   return {
@@ -31,7 +34,7 @@ export const initialBlock = (size: Size): SimpleBlock => {
       [0, 0],
       [size.width - 1, size.height - 1],
     ],
-    color: [255, 255, 255, 1],
+    color: [255, 255, 255, 255],
   };
 };
 
@@ -107,7 +110,29 @@ export class State {
       case "Rasterize": {
         return this.rasterize(blockId);
       }
+      case "Bruteforce":{
+        return this.bruteforce(blockId);
+      }
+      case "BruteforceAll":{
+        return this.bruteforceAll();
+      }
     }
+  }
+
+  async bruteforce(blockId: string) {
+    if (!this.target) {
+      return;
+    }
+    const result = await bruteForceBlock(this.blocks, blockId, this.target);
+    this.applyMove(result);
+  }
+
+  async bruteforceAll() {
+    if (!this.target) {
+      return;
+    }
+    const result = await bruteForceAllBlocks(this.blocks, this.target);
+    this.applyMove(result);
   }
 
   async colorBlock(blockId: string) {

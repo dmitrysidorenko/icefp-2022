@@ -112,9 +112,28 @@ export function imageDataBlockAvgColor(imageData: ImageData, block: Block): Colo
     return acc
   }, [0, 0, 0, 0])
   return [
-    sum[0] / colors.length,
-    sum[1] / colors.length,
-    sum[2] / colors.length,
-    sum[3] / colors.length,
+    Math.round(sum[0] / colors.length),
+    Math.round(sum[1] / colors.length),
+    Math.round(sum[2] / colors.length),
+    Math.round(sum[3] / colors.length),
   ]
+}
+
+export function imageDataBlockFrequentColor(imageData: ImageData, block: Block): Color {
+  const colors = getBlockImageDataColors(imageData, block);
+
+  const colorsStats: {[key: string]: number} = {};
+
+  colors.forEach(color => {
+    const key = JSON.stringify(color);
+    if (key in colorsStats) {
+      colorsStats[key] += 1;
+    } else {
+      colorsStats[key] = 1;
+    }
+  });
+
+  const top = Object.entries(colorsStats).sort(([, counter], [,counter2]) => counter2 - counter)[0];
+
+  return JSON.parse(top[0]);
 }

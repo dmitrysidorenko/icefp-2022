@@ -167,6 +167,8 @@ function KeyboardListener() {
     "3": "PointCut",
     "4": "Color",
     "5": "Rasterize",
+    "6": "Bruteforce",
+    "7": "BruteforceAll"
   };
   useEffect(() => {
     const cb = (e: KeyboardEvent) => {
@@ -269,6 +271,28 @@ export const Tools = observer(() => {
             onClick={() => state.setTool("Rasterize")}
           >
             Rasterize (5)
+          </button>
+        </li>
+        <li>
+          <button
+            className={classNames(
+              "tool-btn",
+              state.tool === "Bruteforce" && "selected"
+            )}
+            onClick={() => state.setTool("Bruteforce")}
+          >
+            Bruteforce (6)
+          </button>
+        </li>
+        <li>
+          <button
+            className={classNames(
+              "tool-btn",
+              state.tool === "BruteforceAll" && "selected"
+            )}
+            onClick={() => state.setTool("BruteforceAll")}
+          >
+            Bruteforce all (7)
           </button>
         </li>
         <li>
