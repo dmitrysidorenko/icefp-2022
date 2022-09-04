@@ -19,10 +19,10 @@ export async function bruteForceBlock(blocks: SimpleBlock[], blockId: string, im
 
   const colorized = variants.map(cut => colorizeCut(cut, imageData));
 
-  const [costDiff, move] = bestMove(block, image, colorized);
+  const bestMoveResult = bestMove(block, imageData, colorized);
 
-  if (costDiff < 0) {
-    return move;
+  if (bestMoveResult && bestMoveResult[0] < 0) {
+    return bestMoveResult[1];
   }
 
   return {
@@ -58,8 +58,20 @@ function autoColor(block: SimpleBlock, imageData: ImageData): MoveCommandResult 
   return ColorBlockIfNeeded(block, imageData)
 }
 
-function bestMove(block: SimpleBlock, image: Image, moves: MoveCommandResult[]): [number, MoveCommandResult] {
-  return [] as any;
+function bestMove(block: SimpleBlock, imageData: ImageData, moves: MoveCommandResult[]): [number, MoveCommandResult] | null {
+  const originalDiff = imageDataBlockDiff(block, imageData)
+  const bestMove = moves.map<[number, MoveCommandResult]>(mcr => {
+    const totalCost = mcr.blocks.reduce(
+      (d, b) => d + imageDataBlockDiff(b, imageData), 0
+    ) + mcr.cost;
+    return [totalCost, mcr]
+  }).sort(([a], [b]) => a < b ? -1 : 1)[0]
+
+  if (bestMove && bestMove[0] < originalDiff) {
+    return bestMove
+  }
+
+  return null;
 }
 
 function colorizeCut(cut: MoveCommandResult, imageData: ImageData): MoveCommandResult {
@@ -102,11 +114,11 @@ async function lineCutVariants(block: SimpleBlock, orientation: Orientation): Pr
   const steps = orientation === "horizontal" ? cutSteps(size.height) : cutSteps(size.width);
 
   const promises = steps.map(async (step) => await LineCut({
-      blockId: block.id,
-      blocks: [block],
-      orientation,
-      point: [block.shape[0][0] + 1, block.shape[0][1] + step],
-    }));
+    blockId: block.id,
+    blocks: [block],
+    orientation,
+    point: [block.shape[0][0] + 1, block.shape[0][1] + step],
+  }));
 
   return await Promise.all(promises);
 }

@@ -1,5 +1,5 @@
 import { observer } from "mobx-react-lite";
-import { MouseEventHandler, useRef, useCallback, useEffect } from "react";
+import { MouseEventHandler, useRef, useCallback, useEffect, useState } from "react";
 import tinycolor2 from "tinycolor2";
 import { Tool, useEditorState } from "./state";
 import {
@@ -150,8 +150,8 @@ const SimpleBlockRenderer = observer(
           position: "absolute",
           left: p1[0],
           bottom: p1[1],
-          width: w - 2,
-          height: h - 2,
+          width: w,
+          height: h,
           background: `rgb(${r} ${g} ${b} / ${a})`,
         }}
       ></div>
@@ -279,6 +279,9 @@ export const Tools = observer(() => {
             RESET
           </button>
         </li>
+        <li>
+          <BordersChecker />
+        </li>
         {/* <li>
           <button onClick={() => selectTool(Tool.Swap)}>Swap</button>
         </li>
@@ -325,4 +328,20 @@ const CrossSection = observer(() => {
 
 function classNames(...classes: (string | null | false | undefined)[]): string {
   return classes.filter(Boolean).join(" ");
+}
+
+function BordersChecker() {
+  const [show, setShow] = useState(true);
+  useEffect(() => {
+    document.documentElement.style.setProperty('--block-border', show ? '0.5px solid gray' : 'none')
+  }, [show])
+  return (
+    <label style={{
+      display: 'flex',
+      height: '100%',
+      alignItems: 'center'
+    }}>
+      <input type="checkbox" checked={show} onChange={e => setShow(e.target.checked)} /> Show border
+    </label>
+  )
 }

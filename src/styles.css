@@ -15,7 +15,8 @@
 }
 
 .block {
-  border: 1px solid gray;
+  border: var(--block-border, 1px solid gray);
+  box-sizing: border-box;
 }
 
 .canvas {
