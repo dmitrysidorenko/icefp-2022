@@ -49,16 +49,20 @@ export function getColors(image: Image, points: Point[]): Color[] {
   });
 }
 
-/** Returns in CANVAS order from top-left */
 export function getAllColors(image: Image): Color[] {
   const ctx = toCtx(image);
 
   const rgbas = ctx.getImageData(0, 0, image.width, image.height).data;
   
-  const colors: Color[] = []
+  const rows: Color[][] = []
 
   for (let i = 0; i < image.width * image.height; i++) {
-    colors.push([
+    const rowI = i % image.width;
+    if (rowI >= rows.length) {
+      rows.push([]);
+    }
+    const row = rows[rowI];
+    row.push([
       rgbas[i * 4],
       rgbas[i * 4 + 1] ,
       rgbas[i * 4 + 2],
@@ -66,7 +70,8 @@ export function getAllColors(image: Image): Color[] {
     ]);
   }
 
-  return colors;
+  rows.reverse();
+  return rows.flat();
 }
 
 
@@ -158,4 +163,9 @@ export function ImageTest() {
         }}
         />
   </div>;
+}
+
+export async function avgColor(image: Image): Promise<Color> {
+  const scaled = await resizeImage(image, 1, 1);
+  return getColor(scaled, [0, 0]);
 }

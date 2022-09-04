@@ -11,13 +11,16 @@ import {
 import { colorBlock } from "./color";
 import { PointCutBlock } from "./point-cut";
 import {
+  avgColor,
   cropImage,
   getAllColors,
+  getColor,
   getColors,
   Image,
   resizeImage,
 } from "../image";
-import { colorDiff } from "../color-diff";
+import { colorDiff, imageBlockDiff } from "../color-diff";
+import { moveCost } from "../cost";
 
 export const RasterizeMove: MoveCommand<{
   target: Image;
@@ -47,6 +50,9 @@ export const RasterizeMove: MoveCommand<{
       acc.push(...el.moves);
       return acc;
     }, []),
+    cost: all.reduce((acc, el) => {
+      return acc + el.cost;
+    }, 0),
   };
 };
 
@@ -55,7 +61,7 @@ async function rasterizeBlock(
   block: Block
 ): Promise<MoveCommandResult> {
   if ((await diffColorsOnImage(target, block, 4)) < 10) {
-    return { blocks: [block], moves: [] };
+    return { blocks: [block], moves: [], cost: 0 };
   }
 
   const scaled = await resizeImage(target, 2, 2);
@@ -70,6 +76,7 @@ async function rasterizeBlock(
   const {
     blocks: [bl, br, tr, tl],
     moves,
+    cost,
   } = PointCutBlock(block, center(block.shape));
 
   return [
@@ -82,14 +89,17 @@ async function rasterizeBlock(
       const r = colorBlock(el[0] as Block, el[1] as Color);
       acc.blocks.push(...r.blocks);
       acc.moves.push(...r.moves);
+      acc.cost += moveCost("color", el[0] as Block, {width: 400, height: 400});
       return acc;
     },
     {
       blocks: [],
       moves: [...moves],
+      cost: cost,
     }
   );
 }
+
 
 async function diffBlockColor(
   image: Image,
@@ -121,6 +131,30 @@ async function diffColorsOnImage(
   return diff;
 }
 
+// async function autoColor(block: SimpleBlock, target: Image) {
+//   const targetColor = await avgColor(target);
+
+//   const currentDiff = imageBlockDiff(target, block.color);
+//   const newDiff = imageBlockDiff(target, targetColor);
+//   const colorCost = moveCost("color", block, {width: 400, height: 400});
+
+//   if (currentDiff < newDiff + colorCost) {
+
+//   }
+
+//   return {
+
+//   }
+
+//   // if (colorDiff(targetColor, block.color) > SHOULD_COLOR_THRESHOLD) {
+//   //     const r = colorBlock(block, targetColor);
+//   //     acc.blocks.push(...r.blocks);
+//   //     acc.moves.push(...r.moves);
+//   //     acc.cost += moveCost("color", el[0] as Block, {width: 400, height: 400});
+//   //     return acc;
+//   // }
+// }
+
 function center(shape: Shape): Point {
   const [[x1, y1], [x2, y2]] = shape;
 
@@ -130,14 +164,3 @@ function center(shape: Shape): Point {
 function avg(one: number, two: number): number {
   return Math.floor((one + two) / 2);
 }
-
-// function getColor(img: HTMLCanvasElement, x: number, y: number): Color {
-//   const ctx = img.getContext('2d');
-//   const inverted = invert(img, [x, y]);
-//   const color = ctx?.getImageData(inverted[0], inverted[1], 1, 1).data;
-//   if (color) {
-//     console.log('color', x, y, color);
-//     return [color[0], color[1], color[2], color[3]];
-//   }
-//   throw new Error("Pixel missing");
-// }

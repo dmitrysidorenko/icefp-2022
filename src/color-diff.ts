@@ -1,4 +1,5 @@
 import { Color } from "./types";
+import { getAllColors, Image } from "./image";
 
 class RGBA {
   r: number;
@@ -32,8 +33,16 @@ class SimilarityChecker {
 }
 
 export function colorDiff(one: Color, two: Color): number {
-  return SimilarityChecker.pixelDiff(
-    new RGBA(one),
-    new RGBA(two),
+  return SimilarityChecker.pixelDiff(new RGBA(one), new RGBA(two));
+}
+
+export function imageBlockDiff(image: Image, blockColor: Color) {
+  const colors = getAllColors(image);
+  const blockColors: RGBA[] = [];
+  colors.forEach((c) => blockColors.push(new RGBA(c)));
+
+  return SimilarityChecker.imageDiff(
+    colors.map((c) => new RGBA(c)),
+    colors.map(() => new RGBA(blockColor))
   );
 }

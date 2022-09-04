@@ -154,8 +154,8 @@ const SimpleBlockRenderer = observer(
           position: "absolute",
           left: p1[0],
           bottom: p1[1],
-          width: w,
-          height: h,
+          width: w - 2,
+          height: h - 2,
           background: `rgb(${r} ${g} ${b} / ${a})`,
         }}
       ></div>
@@ -252,7 +252,7 @@ export const Tools = observer(() => {
               const c = tinycolor2(e.target.value);
               if (c.isValid()) {
                 const { r, g, b, a } = c.toRgb();
-                const newColor: Color = [r, g, b, a];
+                const newColor: Color = [r, g, b, 255];
                 state.setColor(newColor);
               }
             }}

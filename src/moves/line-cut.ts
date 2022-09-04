@@ -1,3 +1,4 @@
+import { moveCost } from "../cost";
 import { Point, Orientation, SimpleBlock, Block, MoveCommand, BlockId, LCutMove, Shape, MoveCommandResult } from "../types";
 
 const LineCut: MoveCommand<{ blockId: BlockId, orientation: Orientation, point: Point }> = ({
@@ -26,12 +27,13 @@ const LineCut: MoveCommand<{ blockId: BlockId, orientation: Orientation, point: 
         resultBlocks.moves.push(makeLineCutMove({
           blockId, orientation, point: [x, y], shape: [[...p1], [...p2]]
         }))
+        resultBlocks.cost += moveCost("lcut", block, {width: 400, height: 400});
         return resultBlocks
       }
     }
     resultBlocks.blocks.push(block)
     return resultBlocks
-  }, { blocks: [], moves: [] })
+  }, { blocks: [], moves: [], cost: 0 })
 }
 
 export function makeLineCutMove({

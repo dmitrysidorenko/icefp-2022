@@ -72,7 +72,8 @@ export type Move = PCutMove | LCutMove | ColorMove | SwapMove | MergeMove
 export type MoveCommand<P = Record<string, unknown>> = (options: P & { blocks: Block[] }) => MoveCommandResult | Promise<MoveCommandResult>
 export interface MoveCommandResult {
   blocks: Block[];
-  moves: Move[]
+  moves: Move[];
+  cost: number;
 }
 
 
@@ -83,3 +84,6 @@ export function shapeSize(shape: Shape): Size {
   }
 }
 
+export function sizeArea(size: Size): number {
+  return size.width * size.height;
+}

@@ -1,3 +1,4 @@
+import { moveCost } from "../cost";
 import { Block, BlockId, Move, MoveCommand, MoveCommandResult, PCutMove, Point, Shape, SimpleBlock } from "../types";
 
 
@@ -14,20 +15,21 @@ export const PointCut: MoveCommand<{ blockId: BlockId, point: Point }> = ({
     if (block.id === blockId) {
       const isInside = isPointInsideBlock(block, point)
       if (isInside) {
-        const { blocks: newBlocks, moves } = PointCutBlock(block, point)
+        const { blocks: newBlocks, moves, cost } = PointCutBlock(block, point)
         acc.blocks.push(
           ...newBlocks
         )
         acc.moves.push(...moves)
+        acc.cost += cost;
         return acc
       }
     }
     acc.blocks.push(block)
     return acc
-  }, { blocks: [], moves: [] })
+  }, { blocks: [], moves: [], cost: 0 })
 }
 
-export function PointCutBlock(block: Block, [x, y]: Point): { blocks: Block[]; moves: Move[] } {
+export function PointCutBlock(block: Block, [x, y]: Point): { blocks: Block[]; moves: Move[], cost: number } {
   const [p1, p2] = block.shape;
 
   const newBlock1: SimpleBlock = {
@@ -58,7 +60,8 @@ export function PointCutBlock(block: Block, [x, y]: Point): { blocks: Block[]; m
   };
   return {
     blocks: [newBlock1, newBlock2, newBlock3, newBlock4],
-    moves: [makePointCutMove({ blockId: block.id, point: [x, y], shape: [[...p1], [...p2]] })]
+    moves: [makePointCutMove({ blockId: block.id, point: [x, y], shape: [[...p1], [...p2]] })],
+    cost: moveCost("pcut", block, {width: 400, height: 400}),
   };
 }
 

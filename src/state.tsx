@@ -15,6 +15,7 @@ import ColorMove from "./moves/color";
 import LineCut from "./moves/line-cut";
 import PointCut from "./moves/point-cut";
 import { RasterizeMove } from "./moves/rasterize";
+import { imageBlockDiff } from "./color-diff";
 
 export type Tool =
   | "PointCut"
@@ -39,6 +40,7 @@ export class State {
 
   blocks: Block[] = [];
   moves: Move[] = [];
+  movesCost: number = 0;
 
   tool: Tool | null = null;
   color: Color = [0, 0, 0, 255];
@@ -60,6 +62,8 @@ export class State {
   reset() {
     this.size = { width: 400, height: 400 };
     this.blocks = [initialBlock(this.size)];
+    this.moves = [];
+    this.movesCost = 0;
   }
 
   setPoint(point: Point) {
@@ -70,6 +74,7 @@ export class State {
     this.targetUrl = URL.createObjectURL(file);
     imageFromFile(file).then((image) => {
       this.target = image;
+      console.log("Image diff", imageBlockDiff(image, [255, 255, 255, 255]));
     });
   }
 
@@ -149,9 +154,10 @@ export class State {
     this.applyMove(result);
   }
 
-  applyMove({ blocks, moves }: MoveCommandResult) {
+  applyMove({ blocks, moves, cost }: MoveCommandResult) {
     this.blocks = blocks;
     this.moves.push(...moves);
+    this.movesCost += cost;
   }
 
   constructor() {
