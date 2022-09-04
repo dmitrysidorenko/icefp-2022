@@ -169,3 +169,13 @@ export async function avgColor(image: Image): Promise<Color> {
   const scaled = await resizeImage(image, 1, 1);
   return getColor(scaled, [0, 0]);
 }
+
+export async function getImageData(image: Image) {
+  const ctx = toCtx(image);
+  return ctx.getImageData(0, 0, image.width, image.height)
+}
+
+
+// take avg block color
+// calc color diff
+// paint block if diff is OK

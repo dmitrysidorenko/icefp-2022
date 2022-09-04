@@ -1,12 +1,15 @@
 import { Block, Move, MoveCommandResult, Orientation, shapeSize, SimpleBlock } from "../types";
 import LineCut from "./line-cut";
 import PointCut from "./point-cut";
-import { Image } from '../image';
+import { getImageData, Image } from '../image';
 import { findBlock } from "../find-block";
+import { imageDataBlockAvgColor, imageDataBlockDiff } from "../color-diff";
+import { colorBlock } from "./color";
 
 
 export async function bruteForceBlock(blocks: SimpleBlock[], blockId: string, image: Image): Promise<MoveCommandResult> {
   const block = findBlock(blocks, blockId);
+  const imageData = await getImageData(image)
 
   const variants = [
     ...await lineCutVariants(block, "horizontal"),
@@ -14,7 +17,7 @@ export async function bruteForceBlock(blocks: SimpleBlock[], blockId: string, im
     ...pointCutVariants(block),
   ];
 
-  const colorized = variants.map(cut => colorizeCut(cut, image));
+  const colorized = variants.map(cut => colorizeCut(cut, imageData));
 
   const [costDiff, move] = bestMove(block, image, colorized);
 
@@ -51,17 +54,17 @@ export async function bruteForceAllBlocks(blocks: SimpleBlock[], image: Image): 
   };
 }
 
-function autoColor(block: SimpleBlock, image: Image): MoveCommandResult {
-  return {} as any;
+function autoColor(block: SimpleBlock, imageData: ImageData): MoveCommandResult {
+  return ColorBlockIfNeeded(block, imageData)
 }
 
 function bestMove(block: SimpleBlock, image: Image, moves: MoveCommandResult[]): [number, MoveCommandResult] {
   return [] as any;
 }
 
-function colorizeCut(cut: MoveCommandResult, image: Image): MoveCommandResult {
+function colorizeCut(cut: MoveCommandResult, imageData: ImageData): MoveCommandResult {
   return cut.blocks.reduce<MoveCommandResult>((result, block) => {
-    const colorized = autoColor(block, image);
+    const colorized = autoColor(block, imageData);
     result.blocks = [...result.blocks, ...colorized.blocks];
     result.cost += colorized.cost;
     result.moves = [...result.moves, ...colorized.moves];
@@ -118,4 +121,26 @@ function cutSteps(size: number): number[] {
   }
 
   return cuts;
+}
+
+function defaultWorthTheEffort(cost: number, diff: number) {
+  return cost > diff;
+}
+
+function ColorBlockIfNeeded(block: Block, imageData: ImageData, worthTheEffort: (cost: number, diff: number) => boolean = defaultWorthTheEffort): MoveCommandResult {
+  const avgColor = imageDataBlockAvgColor(imageData, block)
+  const { blocks: [coloredBlock], moves, cost } = colorBlock(block, avgColor)
+  const diff = imageDataBlockDiff(coloredBlock, imageData)
+  if (worthTheEffort(cost, diff)) {
+    return {
+      blocks: [coloredBlock],
+      moves,
+      cost
+    }
+  }
+  return {
+    blocks: [],
+    moves: [],
+    cost: 0
+  }
 }
