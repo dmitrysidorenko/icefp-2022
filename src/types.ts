@@ -21,13 +21,15 @@ export interface ComplexBlock {
 // export type Block = SimpleBlock | ComplexBlock;
 export type Block = SimpleBlock;
 
+export interface Size {
+  width: number;
+  height: number;
+}
+
 export interface Canvas {
   blockCounter: number;
   blocks: Block[],
-  size: {
-    width: number;
-    height: number;
-  };
+  size: Size;
 }
 
 export function isSimple(block: Block): block is SimpleBlock {
@@ -38,7 +40,7 @@ export function isSimple(block: Block): block is SimpleBlock {
 //   return "children" in block;
 // }
 
-export function initCanvas(props: { width: number; height: number }): Canvas {
+export function initCanvas(props: Size): Canvas {
   return {
     blockCounter: 0,
     blocks: [
@@ -74,7 +76,7 @@ export interface MoveCommandResult {
 }
 
 
-export function shapeSize(shape: Shape): { width: number, height: number } {
+export function shapeSize(shape: Shape): Size {
   return {
     width: shape[1][0] - shape[0][0],
     height: shape[1][1] - shape[0][1],

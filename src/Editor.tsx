@@ -1,108 +1,15 @@
-import {
-  useState,
-  createContext,
-  useContext,
-  PropsWithChildren,
-  useMemo,
-  MouseEvent,
-  MouseEventHandler,
-  useRef,
-  forwardRef,
-  useCallback,
-  useEffect,
-} from "react";
+import { observer } from "mobx-react-lite";
+import { MouseEventHandler, useRef, useCallback, useEffect } from "react";
 import tinycolor2 from "tinycolor2";
-import { Image, imageFromFile } from "./image";
-import { Block, SimpleBlock, Color, Point, Orientation } from "./types";
+import { Tool, useEditorState } from "./state";
+import {
+  Block,
+  SimpleBlock,
+  Color,
+  Point,
+} from "./types";
 
-enum Tool {
-  PointCut = "PointCut",
-  VerticalSplit = "VerticalSplit",
-  HorizontalSplit = "HorizontalSplit",
-  Color = "Color",
-  Rasterize = "Rasterize",
-}
-
-
-export interface EditorContext {
-  size: {
-    width: number;
-    height: number;
-  };
-  color: Color;
-  selectColor: (color: Color) => void;
-  tool: Tool | null;
-  selectTool: (tool: Tool) => void;
-  colorBlock: (options: { blockId: string; color: Color }) => void;
-  lineSplitBlock: (options: {
-    blockId: string;
-    point: Point;
-    orientation: Orientation;
-  }) => void;
-  pointSplitBlock: (options: { blockId: string; point: Point }) => void;
-  rasterize: (options: { blockId: string, target: Image }) => void
-  reset: () => void
-}
-
-export const editorCtx = createContext<EditorContext>({
-  size: {
-    width: 0,
-    height: 0
-  },
-  color: [0, 0, 0, 1],
-  selectColor: () => { },
-  tool: null,
-  selectTool: () => { },
-  lineSplitBlock: () => { },
-  pointSplitBlock: () => { },
-  colorBlock: () => { },
-  rasterize: () => { },
-  reset: () => { },
-});
-
-export function useEditor() {
-  return useContext(editorCtx);
-}
-
-export function EditorProvider({
-  children,
-  lineSplitBlock,
-  pointSplitBlock,
-  colorBlock,
-  reset,
-  rasterize,
-  size
-}: PropsWithChildren<
-  Pick<EditorContext, "colorBlock" | "lineSplitBlock" | "pointSplitBlock" | 'size' | "reset" | 'rasterize'>
->) {
-  const [color, setColor] = useState<EditorContext["color"]>([0, 0, 0, 1]);
-  const [tool, setTool] = useState<EditorContext["tool"]>(null);
-  const value = useMemo<EditorContext>(() => {
-    return {
-      color,
-      selectColor: setColor,
-      tool,
-      selectTool: setTool,
-      lineSplitBlock,
-      pointSplitBlock,
-      colorBlock,
-      size,
-      reset,
-      rasterize
-    };
-  }, [color, tool, size, reset, rasterize]);
-  return <editorCtx.Provider value={value}>{children}</editorCtx.Provider>;
-}
-
-export interface EditorProps {
-  blocks: Block[];
-  size: {
-    width: number;
-    height: number;
-  };
-}
-
-export default function Editor({ blocks, size }: EditorProps) {
+const Editor = observer(() => {
   return (
     <div
       style={{
@@ -112,91 +19,25 @@ export default function Editor({ blocks, size }: EditorProps) {
       }}
     >
       <Tools />
-      <CanvasRenderer blocks={blocks} size={size} />
+      <CanvasRenderer />
       <KeyboardListener />
     </div>
   );
-}
+});
 
+export default Editor;
 
-function CanvasRenderer({
-  blocks,
-  size: { width, height },
-}: {
-  blocks: Block[];
-  size: { width: number; height: number };
-}) {
+const CanvasRenderer = observer(() => {
+  const state = useEditorState();
   const ref = useRef<HTMLDivElement>(null);
-  const pointRef = useRef<Point>([0, 0])
-  // const [point, setPoint] = useState<Point>([0, 0])
-
-  const [target, setTarget] = useState<Image>();
-
-  function setTaretImage(file: File) {
-    imageFromFile(file).then(setTarget);
-  }
 
   const trackHandler = useCallback<MouseEventHandler>((e) => {
     if (ref.current) {
-      const rect = ref.current.getBoundingClientRect()
-      const newPoint: Point = [
-        e.clientX - rect.left,
-        e.clientY - rect.top
-      ]
-      // setPoint(newPoint)
-      pointRef.current = newPoint
+      const rect = ref.current.getBoundingClientRect();
+      const newPoint: Point = [e.clientX - rect.left, e.clientY - rect.top];
+      state.setPoint(newPoint);
     }
-
-  }, [])
-
-  const { tool, colorBlock, lineSplitBlock, pointSplitBlock, color, rasterize } =
-    useEditor();
-  const handleBlockClick = (blockId: string) => {
-    const point = pointRef.current
-    if (tool) {
-      const newPoint: Point = [
-        point[0],
-        height - point[1]
-      ]
-      switch (tool) {
-        case Tool.Color: {
-          return colorBlock({ blockId: blockId, color });
-        }
-        case Tool.HorizontalSplit:
-        case Tool.VerticalSplit: {
-          if (ref.current) {
-            const [x, y] = newPoint
-            return lineSplitBlock({
-              blockId: blockId,
-              orientation:
-                tool === Tool.HorizontalSplit ? "horizontal" : "vertical",
-              point: [x, y],
-            });
-          }
-          break
-        }
-        case Tool.PointCut: {
-          if (ref.current) {
-            const [x, y] = newPoint
-            return pointSplitBlock({
-              blockId: blockId,
-              point: [x, y],
-            });
-          }
-          break
-        }
-        case Tool.Rasterize: {
-          if (ref.current && target) {
-            rasterize({
-              blockId,
-              target,
-            });
-          }
-          break
-        }
-      }
-    }
-  };
+  }, []);
 
   return (
     <div
@@ -205,105 +46,109 @@ function CanvasRenderer({
       className="Canvas canvas"
       style={{
         position: "relative",
-        width,
-        height,
+        width: state.size.width,
+        height: state.size.height,
       }}
     >
-      {blocks.map((block) => (
-        <BlockRenderer key={block.id} block={block} onClick={handleBlockClick} />
+      {state.blocks.map((block) => (
+        <BlockRenderer key={block.id} block={block} />
       ))}
-      <PointDebugger pointRef={pointRef} />
-      <CrossSection pointRef={pointRef} height={height} />
-      <CoverImage onFileSet={setTaretImage} />
+      <PointDebugger />
+      <CrossSection />
+      <CoverImage />
     </div>
   );
-}
+});
 
-function PointDebugger({ pointRef }: { pointRef: React.MutableRefObject<Point> }) {
-  const [point, setPoint] = useState(pointRef.current)
-  useEffect(() => {
-    let af = 0
-    const cb = () => {
-      af = requestAnimationFrame((ts) => {
-        setPoint(p => pointRef.current !== p ? pointRef.current : p)
-        cb()
-      })
-    }
-    cb()
-    return () => {
-      cancelAnimationFrame(af)
-    }
-  }, [])
-  return <div style={{
-    position: 'absolute',
-    bottom: -20,
-    left: 0
-  }}>({point[0]}, {point[1]})</div>
-}
+const PointDebugger = observer(() => {
+  const state = useEditorState();
+  return (
+    <div
+      style={{
+        position: "absolute",
+        bottom: -20,
+        left: 0,
+      }}
+    >
+      ({state.point[0]}, {state.point[1]})
+    </div>
+  );
+});
 
-function CoverImage({ onFileSet }: { onFileSet: (file: File) => void }) {
-  const [opacity, setOpacity] = useState(0.2)
-  const [imgUrl, setImg] = useState('')
+const CoverImage = observer(() => {
+  const state = useEditorState();
+
   return (
     <>
-      {imgUrl && <img
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', opacity, pointerEvents: 'none' }}
-        src={imgUrl} />}
-      <div className="CoverImage_controls">
-        <input accept="image/*" type='file' id="imgInp" onChange={evt => {
-          const file = evt.target.files?.item(0)
-          if (file) {
-            setImg(URL.createObjectURL(file))
-            onFileSet(file);
-          }
-        }}
+      {state.targetUrl && (
+        <img
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: "100%",
+            height: "100%",
+            opacity: state.opacity,
+            pointerEvents: "none",
+          }}
+          src={state.targetUrl}
         />
-        <label style={{ display: 'flex' }}>
+      )}
+
+      <div className="CoverImage_controls">
+        <input
+          accept="image/*"
+          type="file"
+          id="imgInp"
+          onChange={(evt) => {
+            const file = evt.target.files?.item(0);
+            if (file) {
+              state.setTargetFile(file);
+            }
+          }}
+        />
+        <label style={{ display: "flex" }}>
           Opacity
-          <input type="range" step={0.1} min={0} max={1} value={opacity} onChange={e => setOpacity(+e.target.value)} />
+          <input
+            type="range"
+            step={0.1}
+            min={0}
+            max={1}
+            value={state.opacity}
+            onChange={(e) => state.setOpacity(+e.target.value)}
+          />
         </label>
       </div>
     </>
-  )
-}
+  );
+});
 
+const BlockRenderer = observer(({ block }: { block: Block }) => {
+  return <SimpleBlockRenderer block={block} />;
+});
 
-function BlockRenderer({ block, onClick }: { block: Block, onClick: (blockId: string) => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const handleClick = (e: MouseEvent<HTMLElement>) => {
-    e.stopPropagation();
-    onClick(block.id)
-  };
-  return <SimpleBlockRenderer ref={ref} block={block} onClick={handleClick} />;
-}
-
-const SimpleBlockRenderer = forwardRef<
-  HTMLDivElement,
-  {
-    block: SimpleBlock;
-    selected?: boolean;
-    onClick: MouseEventHandler;
-  }
->(
-  (
-    {
-      block: {
-        id,
-        color: [r, g, b, a],
-        shape: [p1, p2],
-      },
-      selected,
-      onClick,
+const SimpleBlockRenderer = observer(
+  ({
+    block: {
+      id,
+      color: [r, g, b, a],
+      shape: [p1, p2],
     },
-    ref
-  ) => {
+  }: {
+    block: SimpleBlock;
+  }) => {
+    const state = useEditorState();
     const w = p2[0] - p1[0];
     const h = p2[1] - p1[1];
     return (
       <div
-        ref={ref}
         data-id={id}
-        onClick={onClick}
+        onClick={(e) => {
+          e.stopPropagation();
+          state.handleBlockClick(id);
+        }}
         className="block"
         style={{
           position: "absolute",
@@ -318,34 +163,33 @@ const SimpleBlockRenderer = forwardRef<
   }
 );
 
-
 function KeyboardListener() {
-  const { selectTool } = useEditor()
+  const state = useEditorState();
+  const keysMap: { [key: string]: Tool } = {
+    "1": "VerticalSplit",
+    "2": "HorizontalSplit",
+    "3": "PointCut",
+    "4": "Color",
+    "5": "Rasterize",
+  };
   useEffect(() => {
     const cb = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case '1':
-          return selectTool(Tool.VerticalSplit)
-        case '2':
-          return selectTool(Tool.HorizontalSplit)
-        case '3':
-          return selectTool(Tool.PointCut)
-        case '4':
-          return selectTool(Tool.Color)
-        case '5':
-          return selectTool(Tool.Rasterize)
+      const tool = keysMap[e.key];
+      if (tool) {
+        state.setTool(tool);
       }
-    }
-    document.addEventListener('keypress', cb)
+    };
+
+    document.addEventListener("keypress", cb);
     return () => {
-      document.removeEventListener('keypress', cb)
-    }
-  }, [])
-  return null
+      document.removeEventListener("keypress", cb);
+    };
+  }, []);
+  return null;
 }
 
-export function Tools() {
-  const { tool, selectTool, color, selectColor, reset } = useEditor();
+export const Tools = observer(() => {
+  const state = useEditorState();
   return (
     <div>
       <ul
@@ -360,57 +204,84 @@ export function Tools() {
       >
         <li>
           <button
-            className={classNames("tool-btn", tool === Tool.VerticalSplit && "selected")}
-            onClick={() => selectTool(Tool.VerticalSplit)}
+            className={classNames(
+              "tool-btn",
+              state.tool === "VerticalSplit" && "selected"
+            )}
+            onClick={() => state.setTool("VerticalSplit")}
           >
             ┃ (1)
           </button>
         </li>
         <li>
           <button
-            className={classNames("tool-btn", tool === Tool.HorizontalSplit && "selected")}
-            onClick={() => selectTool(Tool.HorizontalSplit)}
+            className={classNames(
+              "tool-btn",
+              state.tool === "HorizontalSplit" && "selected"
+            )}
+            onClick={() => state.setTool("HorizontalSplit")}
           >
             ━ (2)
           </button>
         </li>
         <li>
           <button
-            className={classNames("tool-btn", tool === Tool.PointCut && "selected")}
-            onClick={() => selectTool(Tool.PointCut)}>┼ (3)</button>
+            className={classNames(
+              "tool-btn",
+              state.tool === "PointCut" && "selected"
+            )}
+            onClick={() => state.setTool("PointCut")}
+          >
+            ┼ (3)
+          </button>
         </li>
         <li>
           <button
-            className={classNames("tool-btn", tool === Tool.Color && "selected")}
-            onClick={() => selectTool(Tool.Color)}>💅 (4)</button>
+            className={classNames(
+              "tool-btn",
+              state.tool === "Color" && "selected"
+            )}
+            onClick={() => state.setTool("Color")}
+          >
+            💅 (4)
+          </button>
           <input
             type="color"
-            onChange={e => {
-              console.log(e.target.value)
-              const c = tinycolor2(e.target.value)
+            onChange={(e) => {
+              console.log(e.target.value);
+              const c = tinycolor2(e.target.value);
               if (c.isValid()) {
-                const { r, g, b, a } = c.toRgb()
-                const newColor: Color = [r, g, b, a]
-                selectColor(newColor)
+                const { r, g, b, a } = c.toRgb();
+                const newColor: Color = [r, g, b, a];
+                state.setColor(newColor);
               }
             }}
             value={`#${tinycolor2({
-              r: color[0],
-              g: color[1],
-              b: color[2],
-              a: color[3]
+              r: state.color[0],
+              g: state.color[1],
+              b: state.color[2],
+              a: state.color[3],
             }).toHex()}`}
           />
         </li>
         <li>
           <button
-            className={classNames("tool-btn", tool === Tool.Rasterize && "selected")}
-            onClick={() => selectTool(Tool.Rasterize)}>Rasterize (5)</button>
+            className={classNames(
+              "tool-btn",
+              state.tool === "Rasterize" && "selected"
+            )}
+            onClick={() => state.setTool("Rasterize")}
+          >
+            Rasterize (5)
+          </button>
         </li>
         <li>
           <button
             className={classNames("tool-btn")}
-            onClick={() => reset()}>RESET</button>
+            onClick={() => state.reset()}
+          >
+            RESET
+          </button>
         </li>
         {/* <li>
           <button onClick={() => selectTool(Tool.Swap)}>Swap</button>
@@ -421,49 +292,41 @@ export function Tools() {
       </ul>
     </div>
   );
-}
+});
 
-function CrossSection({ pointRef, height }: { pointRef: React.MutableRefObject<Point>; height: number }) {
-  const [point, setPoint] = useState(pointRef.current)
-  useEffect(() => {
-    let af = 0
-    const cb = () => {
-      af = requestAnimationFrame((ts) => {
-        setPoint(p => pointRef.current !== p ? pointRef.current : p)
-        cb()
-      })
-    }
-    cb()
-    return () => {
-      cancelAnimationFrame(af)
-    }
-  }, [])
+const CrossSection = observer(() => {
+  const state = useEditorState();
+
   return (
     <>
       {/* x */}
-      <div style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: point[1],
-        pointerEvents: 'none',
-        height: 1,
-        background: 'black'
-      }}></div>
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top: state.point[1],
+          pointerEvents: "none",
+          height: 1,
+          background: "black",
+        }}
+      ></div>
       {/* y */}
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        bottom: 0,
-        left: point[0],
-        pointerEvents: 'none',
-        width: 1,
-        background: 'black'
-      }}></div>
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          left: state.point[0],
+          pointerEvents: "none",
+          width: 1,
+          background: "black",
+        }}
+      ></div>
     </>
   );
-}
+});
 
 function classNames(...classes: (string | null | false | undefined)[]): string {
-  return classes.filter(Boolean).join(' ')
+  return classes.filter(Boolean).join(" ");
 }

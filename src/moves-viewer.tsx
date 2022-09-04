@@ -1,10 +1,13 @@
+import { observer } from "mobx-react-lite";
+import { useEditorState } from "./state";
 import { Move } from "./types";
 
-export default function MovesViewer({ moves }: { moves: Move[] }) {
+export const MovesViewer = observer(() => {
+    const state = useEditorState();
     return <div style={{ width: 400 }}>
-        <textarea style={{ width: '100%', minHeight: 400 }} value={moves.map(stringifyMove).join('\n')}></textarea>
+        <textarea style={{ width: '100%', minHeight: 400 }} value={state.moves.map(stringifyMove).join('\n')}></textarea>
     </div>
-}
+})
 
 
 export function stringifyMove(move: Move): string {
